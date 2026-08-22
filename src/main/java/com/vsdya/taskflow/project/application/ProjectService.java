@@ -4,6 +4,8 @@ import com.vsdya.taskflow.project.api.CreateProjectRequest;
 import com.vsdya.taskflow.project.domain.Project;
 import com.vsdya.taskflow.project.infrastructure.ProjectEntity;
 import com.vsdya.taskflow.project.infrastructure.ProjectRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,8 +28,17 @@ public class ProjectService {
                 Instant.now()
         );
 
-        var saved = projectRepository.save(entity);
-        return toDomain(saved);
+        return toDomain(projectRepository.save(entity));
+    }
+
+    public Page<Project> findAll(Pageable pageable) {
+        return projectRepository.findAll(pageable).map(this::toDomain);
+    }
+
+    public Project findById(UUID id) {
+        return projectRepository.findById(id)
+                .map(this::toDomain)
+                .orElseThrow(() -> new ProjectNotFoundException(id));
     }
 
     private Project toDomain(ProjectEntity entity) {
