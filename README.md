@@ -2,7 +2,11 @@
 
 Production-style REST API for managing projects and tasks.
 
-> Portfolio project focused on backend development, clean architecture and practical API design.
+> **Portfolio project:** demonstrates a realistic Java backend workflow from requirements and data modelling through implementation, testing, containerization and CI.
+
+## Why this project
+
+TaskFlow is designed as a small but realistic backend service rather than a simple CRUD demo. It demonstrates API design, validation, persistence, database migrations, automated testing and containerized development.
 
 ## Tech stack
 
@@ -17,7 +21,7 @@ Production-style REST API for managing projects and tasks.
 - Docker Compose
 - GitHub Actions
 
-## Current features
+## Features
 
 - Project CRUD
 - Task CRUD
@@ -110,7 +114,7 @@ The API starts on `http://localhost:8080`.
 Health check:
 
 ```text
-GET http://localhost:8080/api/v1/health
+GET /api/v1/health
 ```
 
 Expected response:
@@ -122,10 +126,12 @@ Expected response:
 }
 ```
 
+## Next production improvements
+
+The next planned improvements are authentication, authorization, OpenAPI documentation and additional production hardening such as rate limiting and observability.
+
 ## Project status
 
 🟢 Core Project and Task APIs are implemented.
 
 🚧 Authentication, authorization, OpenAPI documentation and additional production hardening are planned next.
-
-The goal is to demonstrate a realistic backend workflow from requirements and data modelling through implementation, testing, containerization and CI.
