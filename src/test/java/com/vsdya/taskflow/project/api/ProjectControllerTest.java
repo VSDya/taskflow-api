@@ -1,5 +1,6 @@
 package com.vsdya.taskflow.project.api;
 
+import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.project.application.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,5 +56,18 @@ class ProjectControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"\",\"description\":\"Invalid project\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void shouldReturn404WhenProjectDoesNotExist() throws Exception {
+        var projectId = UUID.randomUUID();
+        when(projectService.findById(projectId)).thenThrow(new ProjectNotFoundException(projectId));
+
+        mockMvc.perform(get("/api/v1/projects/{id}", projectId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("PROJECT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Project not found: " + projectId))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 }
