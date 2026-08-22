@@ -1,9 +1,7 @@
 package com.vsdya.taskflow.project.api;
 
 import com.vsdya.taskflow.project.application.ProjectService;
-import com.vsdya.taskflow.project.domain.Project;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -36,9 +34,9 @@ public class ProjectController {
     }
 
     @GetMapping
-    public Page<ProjectResponse> findAll(
+    public PageResponse<ProjectResponse> findAll(
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
-        return projectService.findAll(pageable).map(ProjectResponse::from);
+        return PageResponse.from(projectService.findAll(pageable).map(ProjectResponse::from));
     }
 
     @GetMapping("/{id}")
