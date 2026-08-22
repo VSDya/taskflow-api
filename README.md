@@ -4,62 +4,128 @@ Production-style REST API for managing projects and tasks.
 
 > Portfolio project focused on backend development, clean architecture and practical API design.
 
-## Planned stack
+## Tech stack
 
 - Java 21
-- Spring Boot
-- Spring Security + JWT
-- PostgreSQL
+- Spring Boot 3
+- Spring Web + Validation
 - Spring Data JPA / Hibernate
+- PostgreSQL
 - Flyway
-- OpenAPI / Swagger
 - JUnit 5 + Mockito
 - Testcontainers
 - Docker Compose
 - GitHub Actions
 
-## Core features
+## Current features
 
-- User registration and authentication
-- JWT-based authorization
-- Projects and tasks
-- Roles and permissions
-- Task status, priority and deadlines
-- Pagination, filtering and sorting
+- Project CRUD
+- Task CRUD
+- Project → task relationship
+- Task status: `TODO`, `IN_PROGRESS`, `DONE`
+- Task priority: `LOW`, `MEDIUM`, `HIGH`
+- Pagination and sorting
 - Request validation
-- Consistent API error responses
-- Database migrations
-- Automated tests
-- Containerized local development
+- Consistent `404` API errors
+- PostgreSQL persistence
+- Versioned database migrations
+- Unit and integration tests
+- CI pipeline on GitHub Actions
+
+## API
+
+### Projects
+
+```text
+POST   /api/v1/projects
+GET    /api/v1/projects
+GET    /api/v1/projects/{id}
+PUT    /api/v1/projects/{id}
+DELETE /api/v1/projects/{id}
+```
+
+### Tasks
+
+```text
+POST   /api/v1/projects/{projectId}/tasks
+GET    /api/v1/projects/{projectId}/tasks
+GET    /api/v1/tasks/{id}
+PUT    /api/v1/tasks/{id}
+DELETE /api/v1/tasks/{id}
+```
+
+List endpoints support Spring pagination and sorting parameters such as `page`, `size` and `sort`.
 
 ## Architecture
 
-The application will follow a layered architecture with clear separation between API, application/business logic, persistence and domain models.
-
 ```text
 HTTP / REST
-    ↓
+     ↓
 Controllers
-    ↓
-Services
-    ↓
+     ↓
+Application Services
+     ↓
+Domain / DTOs
+     ↓
 Repositories
-    ↓
+     ↓
+JPA / Hibernate
+     ↓
 PostgreSQL
 ```
 
-DTOs will be used at the API boundary, with validation and centralized exception handling.
+DTOs are used at the API boundary. Database schema changes are managed by Flyway. Integration tests use a real PostgreSQL container through Testcontainers.
 
-## Local development
+## Run locally
 
-The project will provide Docker Compose for PostgreSQL and a reproducible development environment. Secrets and environment-specific configuration will stay outside Git.
+### Requirements
 
-## API documentation
+- JDK 21
+- Maven 3.9+
+- Docker Desktop
+- Git
 
-Swagger / OpenAPI documentation will be available when the application is running.
+### Start PostgreSQL
+
+```bash
+docker compose up -d
+```
+
+### Run tests
+
+```bash
+mvn test
+```
+
+Integration tests require Docker because Testcontainers starts PostgreSQL automatically.
+
+### Start the API
+
+```bash
+mvn spring-boot:run
+```
+
+The API starts on `http://localhost:8080`.
+
+Health check:
+
+```text
+GET http://localhost:8080/api/v1/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "UP",
+  "service": "taskflow-api"
+}
+```
 
 ## Project status
 
-🚧 In active development.
+🟢 Core Project and Task APIs are implemented.
 
-The goal is to demonstrate how I approach a realistic backend task from requirements and data modelling through implementation, testing, containerization and documentation.
+🚧 Authentication, authorization, OpenAPI documentation and additional production hardening are planned next.
+
+The goal is to demonstrate a realistic backend workflow from requirements and data modelling through implementation, testing, containerization and CI.
