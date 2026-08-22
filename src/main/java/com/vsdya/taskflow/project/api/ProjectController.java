@@ -7,9 +7,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -30,8 +32,7 @@ public class ProjectController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ProjectResponse create(@Valid @RequestBody CreateProjectRequest request) {
-        Project project = projectService.create(request);
-        return ProjectResponse.from(project);
+        return ProjectResponse.from(projectService.create(request));
     }
 
     @GetMapping
@@ -43,5 +44,18 @@ public class ProjectController {
     @GetMapping("/{id}")
     public ProjectResponse findById(@PathVariable UUID id) {
         return ProjectResponse.from(projectService.findById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ProjectResponse update(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateProjectRequest request) {
+        return ProjectResponse.from(projectService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        projectService.delete(id);
     }
 }
