@@ -2,5 +2,18 @@ spring:
   application:
     name: taskflow-api
 
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:taskflow}
+    username: ${POSTGRES_USER:taskflow}
+    password: ${POSTGRES_PASSWORD:taskflow_dev_password}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
 server:
   port: 8080
