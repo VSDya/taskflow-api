@@ -1,5 +1,6 @@
 package com.vsdya.taskflow.api;
 
+import com.vsdya.taskflow.auth.application.InvalidCredentialsException;
 import com.vsdya.taskflow.auth.application.UserAlreadyExistsException;
 import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.task.application.TaskNotFoundException;
@@ -42,6 +43,17 @@ public class ApiExceptionHandler {
         return new ErrorResponse(
                 409,
                 "USER_ALREADY_EXISTS",
+                exception.getMessage(),
+                Instant.now()
+        );
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleInvalidCredentials(InvalidCredentialsException exception) {
+        return new ErrorResponse(
+                401,
+                "INVALID_CREDENTIALS",
                 exception.getMessage(),
                 Instant.now()
         );
