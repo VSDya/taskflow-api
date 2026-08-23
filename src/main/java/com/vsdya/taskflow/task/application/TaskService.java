@@ -22,66 +22,126 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final ProjectRepository projectRepository;
 
-    public TaskService(TaskRepository taskRepository, ProjectRepository projectRepository) {
+    public TaskService(
+            TaskRepository taskRepository,
+            ProjectRepository projectRepository
+    ) {
         this.taskRepository = taskRepository;
         this.projectRepository = projectRepository;
     }
 
     @Transactional
-    public Task create(UUID projectId, CreateTaskRequest request) {
-        ensureProjectExists(projectId);
+    public Task create(
+            UUID ownerId,
+            UUID projectId,
+            CreateTaskRequest request
+    ) {
+        ensureProjectBelongsToOwner(ownerId, projectId);
+
         var now = Instant.now();
+
         var entity = new TaskEntity(
-                UUID.randomUUID(), projectId, request.title().trim(),
-                request.description() == null ? null : request.description().trim(),
-                TaskStatus.TODO, request.priority(), request.dueDate(), now, now
+                UUID.randomUUID(),
+                projectId,
+                request.title().trim(),
+                request.description() == null
+                        ? null
+                        : request.description().trim(),
+                TaskStatus.TODO,
+                request.priority(),
+                request.dueDate(),
+                now,
+                now
         );
+
         return toDomain(taskRepository.save(entity));
     }
 
     @Transactional(readOnly = true)
-    public Page<Task> findByProject(UUID projectId, Pageable pageable) {
-        ensureProjectExists(projectId);
-        return taskRepository.findByProjectId(projectId, pageable).map(this::toDomain);
+    public Page<Task> findByProject(
+            UUID ownerId,
+            UUID projectId,
+            Pageable pageable
+    ) {
+        ensureProjectBelongsToOwner(ownerId, projectId);
+
+        return taskRepository
+                .findByProjectId(projectId, pageable)
+                .map(this::toDomain);
     }
 
     @Transactional(readOnly = true)
-    public Task findById(UUID id) {
-        return taskRepository.findById(id)
-                .map(this::toDomain)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+    public Task findById(
+            UUID ownerId,
+            UUID taskId
+    ) {
+        var task = getEntity(taskId);
+
+        ensureProjectBelongsToOwner(ownerId, task.getProjectId());
+
+        return toDomain(task);
     }
 
     @Transactional
-    public Task update(UUID id, UpdateTaskRequest request) {
-        var entity = getEntity(id);
+    public Task update(
+            UUID ownerId,
+            UUID taskId,
+            UpdateTaskRequest request
+    ) {
+        var entity = getEntity(taskId);
+
+        ensureProjectBelongsToOwner(ownerId, entity.getProjectId());
+
         entity.update(
                 request.title().trim(),
-                request.description() == null ? null : request.description().trim(),
-                request.status(), request.priority(), request.dueDate()
+                request.description() == null
+                        ? null
+                        : request.description().trim(),
+                request.status(),
+                request.priority(),
+                request.dueDate()
         );
+
         return toDomain(entity);
     }
 
     @Transactional
-    public void delete(UUID id) {
-        taskRepository.delete(getEntity(id));
+    public void delete(
+            UUID ownerId,
+            UUID taskId
+    ) {
+        var entity = getEntity(taskId);
+
+        ensureProjectBelongsToOwner(ownerId, entity.getProjectId());
+
+        taskRepository.delete(entity);
     }
 
-    private TaskEntity getEntity(UUID id) {
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new TaskNotFoundException(id));
+    private TaskEntity getEntity(UUID taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new TaskNotFoundException(taskId));
     }
 
-    private void ensureProjectExists(UUID projectId) {
-        if (!projectRepository.existsById(projectId)) {
+    private void ensureProjectBelongsToOwner(
+            UUID ownerId,
+            UUID projectId
+    ) {
+        if (!projectRepository.existsByIdAndOwnerId(projectId, ownerId)) {
             throw new ProjectNotFoundException(projectId);
         }
     }
 
     private Task toDomain(TaskEntity entity) {
-        return new Task(entity.getId(), entity.getProjectId(), entity.getTitle(),
-                entity.getDescription(), entity.getStatus(), entity.getPriority(),
-                entity.getDueDate(), entity.getCreatedAt(), entity.getUpdatedAt());
+        return new Task(
+                entity.getId(),
+                entity.getProjectId(),
+                entity.getTitle(),
+                entity.getDescription(),
+                entity.getStatus(),
+                entity.getPriority(),
+                entity.getDueDate(),
+                entity.getCreatedAt(),
+                entity.getUpdatedAt()
+        );
     }
 }
