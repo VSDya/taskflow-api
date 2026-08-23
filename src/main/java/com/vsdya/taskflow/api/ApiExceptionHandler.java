@@ -1,5 +1,6 @@
 package com.vsdya.taskflow.api;
 
+import com.vsdya.taskflow.auth.application.UserAlreadyExistsException;
 import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.task.application.TaskNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -30,6 +31,17 @@ public class ApiExceptionHandler {
         return new ErrorResponse(
                 404,
                 "TASK_NOT_FOUND",
+                exception.getMessage(),
+                Instant.now()
+        );
+    }
+
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleUserAlreadyExists(UserAlreadyExistsException exception) {
+        return new ErrorResponse(
+                409,
+                "USER_ALREADY_EXISTS",
                 exception.getMessage(),
                 Instant.now()
         );
