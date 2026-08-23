@@ -4,6 +4,7 @@ import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.project.application.ProjectService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProjectController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class ProjectControllerTest {
 
     @Autowired
@@ -31,6 +33,7 @@ class ProjectControllerTest {
     @Test
     void shouldCreateProject() throws Exception {
         var projectId = UUID.randomUUID();
+
         when(projectService.create(any())).thenReturn(
                 new com.vsdya.taskflow.project.domain.Project(
                         projectId,
@@ -61,7 +64,9 @@ class ProjectControllerTest {
     @Test
     void shouldReturn404WhenProjectDoesNotExist() throws Exception {
         var projectId = UUID.randomUUID();
-        when(projectService.findById(projectId)).thenThrow(new ProjectNotFoundException(projectId));
+
+        when(projectService.findById(projectId))
+                .thenThrow(new ProjectNotFoundException(projectId));
 
         mockMvc.perform(get("/api/v1/projects/{id}", projectId))
                 .andExpect(status().isNotFound())
