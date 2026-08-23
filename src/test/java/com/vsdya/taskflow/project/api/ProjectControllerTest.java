@@ -2,6 +2,7 @@ package com.vsdya.taskflow.project.api;
 
 import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.project.application.ProjectService;
+import com.vsdya.taskflow.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,6 +30,9 @@ class ProjectControllerTest {
 
     @MockBean
     private ProjectService projectService;
+
+    @MockBean
+    private JwtService jwtService;
 
     @Test
     void shouldCreateProject() throws Exception {
