@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:taskflow}
     username: ${POSTGRES_USER:taskflow}
-    password: ${POSTGRES_PASSWORD:taskflow_dev_password}
+    password: ${POSTGRES_PASSWORD:change_me}
 
   jpa:
     hibernate:
