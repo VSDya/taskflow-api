@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,5 +21,8 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Run tests
-        run: mvn -B test
+      - name: Verify
+        run: mvn -B verify
+
+      - name: Package
+        run: mvn -B package -DskipTests
