@@ -95,6 +95,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Spring Security test support -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Spring Boot Testcontainers integration -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

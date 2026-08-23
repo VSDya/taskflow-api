@@ -23,11 +23,17 @@ public class ProjectService {
     }
 
     @Transactional
-    public Project create(CreateProjectRequest request) {
+    public Project create(
+            UUID ownerId,
+            CreateProjectRequest request
+    ) {
         var entity = new ProjectEntity(
                 UUID.randomUUID(),
+                ownerId,
                 request.name().trim(),
-                request.description() == null ? null : request.description().trim(),
+                request.description() == null
+                        ? null
+                        : request.description().trim(),
                 Instant.now()
         );
 
@@ -35,34 +41,57 @@ public class ProjectService {
     }
 
     @Transactional(readOnly = true)
-    public Page<Project> findAll(Pageable pageable) {
-        return projectRepository.findAll(pageable).map(this::toDomain);
+    public Page<Project> findAll(
+            UUID ownerId,
+            Pageable pageable
+    ) {
+        return projectRepository
+                .findAllByOwnerId(ownerId, pageable)
+                .map(this::toDomain);
     }
 
     @Transactional(readOnly = true)
-    public Project findById(UUID id) {
-        return toDomain(getEntity(id));
+    public Project findById(
+            UUID ownerId,
+            UUID projectId
+    ) {
+        return toDomain(getEntity(ownerId, projectId));
     }
 
     @Transactional
-    public Project update(UUID id, UpdateProjectRequest request) {
-        var entity = getEntity(id);
+    public Project update(
+            UUID ownerId,
+            UUID projectId,
+            UpdateProjectRequest request
+    ) {
+        var entity = getEntity(ownerId, projectId);
+
         entity.update(
                 request.name().trim(),
-                request.description() == null ? null : request.description().trim()
+                request.description() == null
+                        ? null
+                        : request.description().trim()
         );
+
         return toDomain(entity);
     }
 
     @Transactional
-    public void delete(UUID id) {
-        var entity = getEntity(id);
+    public void delete(
+            UUID ownerId,
+            UUID projectId
+    ) {
+        var entity = getEntity(ownerId, projectId);
         projectRepository.delete(entity);
     }
 
-    private ProjectEntity getEntity(UUID id) {
-        return projectRepository.findById(id)
-                .orElseThrow(() -> new ProjectNotFoundException(id));
+    private ProjectEntity getEntity(
+            UUID ownerId,
+            UUID projectId
+    ) {
+        return projectRepository
+                .findByIdAndOwnerId(projectId, ownerId)
+                .orElseThrow(() -> new ProjectNotFoundException(projectId));
     }
 
     private Project toDomain(ProjectEntity entity) {

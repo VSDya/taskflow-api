@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,31 +30,53 @@ public class ProjectController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ProjectResponse create(@Valid @RequestBody CreateProjectRequest request) {
-        return ProjectResponse.from(projectService.create(request));
+    public ProjectResponse create(
+            @AuthenticationPrincipal UUID userId,
+            @Valid @RequestBody CreateProjectRequest request
+    ) {
+        return ProjectResponse.from(
+                projectService.create(userId, request)
+        );
     }
 
     @GetMapping
     public PageResponse<ProjectResponse> findAll(
-            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
-        return PageResponse.from(projectService.findAll(pageable).map(ProjectResponse::from));
+            @AuthenticationPrincipal UUID userId,
+            @PageableDefault(size = 20, sort = "createdAt") Pageable pageable
+    ) {
+        return PageResponse.from(
+                projectService.findAll(userId, pageable)
+                        .map(ProjectResponse::from)
+        );
     }
 
     @GetMapping("/{id}")
-    public ProjectResponse findById(@PathVariable UUID id) {
-        return ProjectResponse.from(projectService.findById(id));
+    public ProjectResponse findById(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID id
+    ) {
+        return ProjectResponse.from(
+                projectService.findById(userId, id)
+        );
     }
 
     @PutMapping("/{id}")
     public ProjectResponse update(
+            @AuthenticationPrincipal UUID userId,
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateProjectRequest request) {
-        return ProjectResponse.from(projectService.update(id, request));
+            @Valid @RequestBody UpdateProjectRequest request
+    ) {
+        return ProjectResponse.from(
+                projectService.update(userId, id, request)
+        );
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable UUID id) {
-        projectService.delete(id);
+    public void delete(
+            @AuthenticationPrincipal UUID userId,
+            @PathVariable UUID id
+    ) {
+        projectService.delete(userId, id);
     }
 }

@@ -15,6 +15,9 @@ public class ProjectEntity {
     @Id
     private UUID id;
 
+    @Column(name = "owner_id", nullable = false)
+    private UUID ownerId;
+
     @Column(nullable = false, length = 120)
     private String name;
 
@@ -27,17 +30,39 @@ public class ProjectEntity {
     protected ProjectEntity() {
     }
 
-    public ProjectEntity(UUID id, String name, String description, Instant createdAt) {
+    public ProjectEntity(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String description,
+            Instant createdAt
+    ) {
         this.id = id;
+        this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.createdAt = createdAt;
     }
 
-    public UUID getId() { return id; }
-    public String getName() { return name; }
-    public String getDescription() { return description; }
-    public Instant getCreatedAt() { return createdAt; }
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 
     public void update(String name, String description) {
         this.name = name;
