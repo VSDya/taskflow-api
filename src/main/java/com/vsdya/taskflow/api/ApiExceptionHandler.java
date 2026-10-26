@@ -5,6 +5,7 @@ import com.vsdya.taskflow.auth.application.UserAlreadyExistsException;
 import com.vsdya.taskflow.project.application.ProjectNotFoundException;
 import com.vsdya.taskflow.task.application.TaskNotFoundException;
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -84,6 +85,19 @@ public class ApiExceptionHandler {
                 400,
                 "VALIDATION_ERROR",
                 message,
+                Instant.now()
+        );
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleInvalidSortProperty(
+            PropertyReferenceException exception
+    ) {
+        return new ErrorResponse(
+                400,
+                "INVALID_SORT_PROPERTY",
+                "Invalid sort property: " + exception.getPropertyName(),
                 Instant.now()
         );
     }

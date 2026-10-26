@@ -105,12 +105,27 @@ public class TaskController {
                     Returns a paginated list of tasks in a project owned by the
                     authenticated user. Tasks from other users' projects are
                     not accessible.
+
+                    The default page size is 20 and the maximum is 100.
+                    Page numbering starts at 0.
+                    Use sort to order by a valid task property, for example
+                    createdAt,asc or title,desc.
                     """
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
                     description = "Tasks retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid sort property",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "401",

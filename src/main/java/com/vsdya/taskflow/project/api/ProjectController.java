@@ -90,12 +90,26 @@ public class ProjectController {
                     Returns a paginated list of projects owned by the
                     authenticated user. Projects belonging to other users
                     are not included.
+
+                    The default page size is 20 and the maximum is 100.
+                    Use the sort parameter to sort by a valid project field,
+                    for example createdAt,asc or name,desc.
                     """
     )
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
                     description = "Projects retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid sort property",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "401",
