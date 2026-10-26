@@ -1,0 +1,3 @@
+jwt:
+  # Test-only key. Never use this value outside automated tests.
+  secret: test-only-signing-key-do-not-use-outside-tests-0123456789abcdef
