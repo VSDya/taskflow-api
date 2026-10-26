@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -43,7 +43,8 @@ class AuthFlowIntegrationTest {
 
     @Test
     void shouldRegisterLoginAndAccessProtectedEndpoint() throws Exception {
-        String email = "flow-" + System.currentTimeMillis() + "@example.com";
+        String email =
+                "flow-" + System.currentTimeMillis() + "@example.com";
         String password = "StrongPassword123";
 
         mockMvc.perform(
@@ -92,5 +93,30 @@ class AuthFlowIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                 )
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnStructured401WhenTokenIsMissing() throws Exception {
+        mockMvc.perform(get("/api/v1/projects"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message")
+                        .value("Authentication is required or the token is invalid"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
+    void shouldReturnStructured401WhenTokenIsInvalid() throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/projects")
+                                .header("Authorization", "Bearer invalid-token")
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message")
+                        .value("Authentication is required or the token is invalid"))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 }

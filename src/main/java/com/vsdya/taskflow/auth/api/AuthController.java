@@ -1,7 +1,10 @@
 package com.vsdya.taskflow.auth.api;
 
+import com.vsdya.taskflow.api.ApiExceptionHandler;
 import com.vsdya.taskflow.auth.application.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,11 +49,23 @@ public class AuthController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid email or password validation failed"
+                    description = "Invalid request or validation failed",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "409",
-                    description = "A user with this email already exists"
+                    description = "A user with this email already exists",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             )
     })
     public AuthResponse register(
@@ -76,11 +91,23 @@ public class AuthController {
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Request validation failed"
+                    description = "Request validation failed",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Invalid email or password"
+                    description = "Invalid email or password",
+                    content = @Content(
+                            schema = @Schema(
+                                    implementation =
+                                            ApiExceptionHandler.ErrorResponse.class
+                            )
+                    )
             )
     })
     public AuthResponse login(
