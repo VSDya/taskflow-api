@@ -26,7 +26,8 @@ server:
   port: 8080
 
 jwt:
-  secret: ${JWT_SECRET:change_me_to_a_long_random_secret_key_at_least_32_chars}
+  # No fallback: fail fast instead of accepting a predictable signing key.
+  secret: ${JWT_SECRET}
   expiration-ms: 3600000
 
 springdoc:
