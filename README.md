@@ -1,84 +1,63 @@
 # TaskFlow API
 
-Production-style REST API for managing projects and tasks.
+A Java 21 / Spring Boot REST API for project and task management, with JWT authentication, owner-scoped authorization, PostgreSQL persistence, Flyway migrations, OpenAPI documentation, and automated tests.
 
-> **Portfolio project:** demonstrates a realistic Java backend workflow from requirements and data modelling through implementation, testing, containerization and CI.
-
-## Why this project
-
-TaskFlow is designed as a small but realistic backend service rather than a simple CRUD demo. It demonstrates API design, validation, persistence, database migrations, automated testing and containerized development.
+> **Portfolio project:** demonstrates API design, authentication, authorization, relational data modelling, integration testing, containerization, and CI.
 
 ## Tech stack
 
-- Java 21
-- Spring Boot 3
-- Spring Web + Validation
-- Spring Data JPA / Hibernate
-- PostgreSQL
-- Flyway
-- JUnit 5 + Mockito
-- Testcontainers
-- Docker Compose
-- GitHub Actions
+- Java 21, Spring Boot 3
+- Spring Web, Validation, Spring Security
+- Spring Data JPA / Hibernate, PostgreSQL, Flyway
+- JWT (JJWT), BCrypt password hashing
+- OpenAPI / Swagger UI
+- JUnit 5, Mockito, Testcontainers
+- Docker Compose, GitHub Actions
 
 ## Features
 
-- Project CRUD
-- Task CRUD
-- Project → task relationship
+- User registration and login with signed JWT access tokens
+- BCrypt password hashing
+- Owner-scoped project CRUD and task operations
 - Task status: `TODO`, `IN_PROGRESS`, `DONE`
 - Task priority: `LOW`, `MEDIUM`, `HIGH`
-- Pagination and sorting
-- Request validation
-- Consistent `404` API errors
-- PostgreSQL persistence
-- Versioned database migrations
-- Unit and integration tests
-- CI pipeline on GitHub Actions
+- Request validation, structured API errors, pagination and sorting
+- Database schema managed by Flyway
+- Unit, MVC, and PostgreSQL integration tests
+- CI build and verification through GitHub Actions
 
 ## API
 
+### Authentication
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/auth/register` | Register a user |
+| POST | `/api/v1/auth/login` | Obtain a JWT |
+
 ### Projects
 
-```text
-POST   /api/v1/projects
-GET    /api/v1/projects
-GET    /api/v1/projects/{id}
-PUT    /api/v1/projects/{id}
-DELETE /api/v1/projects/{id}
-```
+| Method | Endpoint |
+| --- | --- |
+| POST | `/api/v1/projects` |
+| GET | `/api/v1/projects` |
+| GET | `/api/v1/projects/{id}` |
+| PUT | `/api/v1/projects/{id}` |
+| DELETE | `/api/v1/projects/{id}` |
 
 ### Tasks
 
-```text
-POST   /api/v1/projects/{projectId}/tasks
-GET    /api/v1/projects/{projectId}/tasks
-GET    /api/v1/tasks/{id}
-PUT    /api/v1/tasks/{id}
-DELETE /api/v1/tasks/{id}
-```
+| Method | Endpoint |
+| --- | --- |
+| POST | `/api/v1/projects/{projectId}/tasks` |
+| GET | `/api/v1/projects/{projectId}/tasks` |
+| GET | `/api/v1/tasks/{id}` |
+| PUT | `/api/v1/tasks/{id}` |
+| DELETE | `/api/v1/tasks/{id}` |
 
-List endpoints support Spring pagination and sorting parameters such as `page`, `size` and `sort`.
+Protected endpoints require `Authorization: Bearer <token>`. List endpoints support `page`, `size` (maximum 100), and `sort`.
 
-## Architecture
-
-```text
-HTTP / REST
-     ↓
-Controllers
-     ↓
-Application Services
-     ↓
-Domain / DTOs
-     ↓
-Repositories
-     ↓
-JPA / Hibernate
-     ↓
-PostgreSQL
-```
-
-DTOs are used at the API boundary. Database schema changes are managed by Flyway. Integration tests use a real PostgreSQL container through Testcontainers.
+OpenAPI UI is available at `/swagger-ui/index.html` when the application is running.
 
 ## Run locally
 
@@ -86,52 +65,65 @@ DTOs are used at the API boundary. Database schema changes are managed by Flyway
 
 - JDK 21
 - Maven 3.9+
-- Docker Desktop
-- Git
+- Docker Desktop / Docker Engine with Compose
+- OpenSSL (for generating a secret)
 
-### Start PostgreSQL
+### Configure environment
+
+Copy the example file and replace the placeholders before starting the services:
 
 ```bash
-docker compose up -d
+cp .env.example .env
 ```
+
+Generate a strong JWT signing secret:
+
+```bash
+openssl rand -base64 48
+```
+
+Put the generated value in `JWT_SECRET` in your local `.env` file. Replace the database password placeholder with a strong password too. **Do not commit `.env` or share its contents.** The application intentionally has no default JWT secret and will fail to start if `JWT_SECRET` is missing or too short for the configured HMAC algorithm.
+
+### Start the API and PostgreSQL
+
+```bash
+docker compose up --build -d
+```
+
+The API listens on `http://localhost:8080` and is bound to loopback by default.
 
 ### Run tests
 
 ```bash
-mvn test
+mvn verify
 ```
 
-Integration tests require Docker because Testcontainers starts PostgreSQL automatically.
+Integration tests use Testcontainers and require Docker. They start their own PostgreSQL containers; they do not require a manually running local PostgreSQL instance.
 
-### Start the API
-
-```bash
-mvn spring-boot:run
-```
-
-The API starts on `http://localhost:8080`.
-
-Health check:
+### Health endpoint
 
 ```text
 GET /api/v1/health
 ```
 
-Expected response:
+The endpoint is currently subject to the API's authentication rules. Supply a bearer token unless the security configuration is changed to explicitly allow anonymous health checks.
 
-```json
-{
-  "status": "UP",
-  "service": "taskflow-api"
-}
+## Architecture
+
+```text
+HTTP / REST
+     ↓
+Controllers / DTO validation
+     ↓
+Application services + ownership checks
+     ↓
+Repositories
+     ↓
+JPA / Hibernate
+     ↓
+PostgreSQL (Flyway migrations)
 ```
 
-## Next production improvements
+## Known production-hardening work
 
-The next planned improvements are authentication, authorization, OpenAPI documentation and additional production hardening such as rate limiting and observability.
-
-## Project status
-
-🟢 Core Project and Task APIs are implemented.
-
-🚧 Authentication, authorization, OpenAPI documentation and additional production hardening are planned next.
+This is a portfolio project, not a claim of production readiness. Before production use, consider rate limiting and abuse protection for authentication, centralized secret management and rotation, observability/metrics, deployment-specific health checks, and a documented backup/restore process.
