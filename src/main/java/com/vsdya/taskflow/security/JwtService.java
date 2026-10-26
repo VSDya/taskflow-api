@@ -42,13 +42,12 @@ public class JwtService {
 
     public UUID extractUserId(String token) {
         Claims claims = parseToken(token);
-
         return UUID.fromString(claims.getSubject());
     }
 
     public boolean isValid(String token) {
         try {
-            parseToken(token);
+            UUID.fromString(parseToken(token).getSubject());
             return true;
         } catch (RuntimeException exception) {
             return false;
