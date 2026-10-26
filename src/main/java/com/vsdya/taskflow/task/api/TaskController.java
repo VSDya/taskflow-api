@@ -1,6 +1,7 @@
 package com.vsdya.taskflow.task.api;
 
 import com.vsdya.taskflow.task.application.TaskService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskController {
 
     private final TaskService taskService;

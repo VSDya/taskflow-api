@@ -1,6 +1,7 @@
 package com.vsdya.taskflow.project.api;
 
 import com.vsdya.taskflow.project.application.ProjectService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -20,6 +21,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/projects")
+@SecurityRequirement(name = "bearerAuth")
 public class ProjectController {
 
     private final ProjectService projectService;
