@@ -2,6 +2,8 @@
 
 A Java 21 / Spring Boot REST API for project and task management, with JWT authentication, owner-scoped authorization, PostgreSQL persistence, Flyway migrations, OpenAPI documentation, and automated tests.
 
+Русская версия: [README.ru.md](README.ru.md).
+
 > **Portfolio project:** demonstrates API design, authentication, authorization, relational data modelling, integration testing, containerization, and CI.
 
 ## Tech stack
@@ -106,7 +108,7 @@ Integration tests use Testcontainers and require Docker. They start their own Po
 GET /api/v1/health
 ```
 
-The endpoint is currently subject to the API's authentication rules. Supply a bearer token unless the security configuration is changed to explicitly allow anonymous health checks.
+This endpoint is public and does not require a bearer token.
 
 ## Architecture
 
