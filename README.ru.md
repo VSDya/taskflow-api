@@ -1,75 +1,77 @@
 # TaskFlow API
 
-REST API для управления проектами и задачами, разработанный на Java 21 и Spring Boot.
+REST API для управления проектами и задачами на Java 21 и Spring Boot 3. Проект демонстрирует JWT-аутентификацию, проверку владельца ресурсов, хранение данных в PostgreSQL, миграции Flyway, документацию API, автоматизированные тесты, Docker Compose и CI.
 
-TaskFlow демонстрирует практики backend-разработки: JWT-аутентификацию, проверку владельца ресурсов, хранение данных в PostgreSQL, миграции базы данных, автоматизированное тестирование, документацию API и контейнеризацию.
+**English version:** [README.md](README.md)
+
+> **Портфолио-проект.** Репозиторий демонстрирует практики backend-разработки и тестирования; он не заявляется как готовое к production решение.
+
+## Содержание
+
+- [Возможности](#возможности)
+- [Технологический стек](#технологический-стек)
+- [Требования](#требования)
+- [Запуск](#запуск-проекта)
+- [API](#api-endpoints)
+- [Пагинация и сортировка](#пагинация-и-сортировка)
+- [Формат ошибок](#формат-ошибок)
+- [Архитектура и миграции](#архитектура-и-миграции)
+- [Тестирование и CI](#тестирование-и-ci)
 
 ## Возможности
 
-- Регистрация пользователей и вход в систему
+- Регистрация пользователей и вход с выдачей подписанного JWT
 - Хеширование паролей с помощью BCrypt
-- Stateless-аутентификация на основе JWT
-- CRUD-операции для проектов
-- CRUD-операции для задач
-- Связь проектов с задачами
-- Проверка владельца проектов и задач
-- Валидация входящих запросов
-- Единый формат JSON-ошибок
-- Пагинация и сортировка
-- Хранение данных в PostgreSQL
-- Миграции схемы базы данных с помощью Flyway
-- Unit- и интеграционные тесты
-- Документация OpenAPI и интерфейс Swagger UI
-- Среда разработки на Docker Compose
-- CI через GitHub Actions
+- CRUD-операции для проектов и задач
+- Проверка владельца ресурсов: пользователь может работать только со своими проектами и задачами
+- Статусы задач: `TODO`, `IN_PROGRESS`, `DONE`
+- Приоритеты задач: `LOW`, `MEDIUM`, `HIGH`
+- Валидация входящих запросов и единый формат JSON-ошибок
+- Пагинация и сортировка списков
+- Миграции схемы базы данных через Flyway
+- Unit-, MVC- и интеграционные тесты с PostgreSQL
+- Документация OpenAPI и Swagger UI
+- Docker Compose и GitHub Actions CI
 
 ## Технологический стек
 
-- Java 21
-- Spring Boot 3
-- Spring Web
-- Spring Security
-- Spring Validation
+- Java 21, Spring Boot 3
+- Spring Web, Spring Validation, Spring Security
 - Spring Data JPA / Hibernate
-- PostgreSQL
-- Flyway
-- JJWT
+- PostgreSQL 16, Flyway
+- JJWT, BCrypt
 - Springdoc OpenAPI / Swagger UI
-- JUnit 5, Mockito и MockMvc
-- Testcontainers
-- Maven
-- Docker Compose
-- GitHub Actions
+- JUnit 5, Mockito, MockMvc, Testcontainers
+- Maven, Docker Compose, GitHub Actions
 
 ## Требования
 
-Для запуска проекта необходимы:
-
 - JDK 21
 - Maven 3.9 или новее
-- Docker Desktop с поддержкой Docker Compose
+- Docker Desktop или Docker Engine с поддержкой Docker Compose
+- OpenSSL (необязательно, для генерации JWT-секрета)
 - Git
 
 ## Запуск проекта
 
 ### Вариант 1. Запуск через Docker Compose
 
-Сначала создай локальный файл конфигурации из шаблона:
+Создай локальный файл конфигурации из шаблона:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Открой `.env` и замени значения `POSTGRES_PASSWORD` и `JWT_SECRET`.
+Открой `.env` и замени значения-заполнители:
 
 - `POSTGRES_PASSWORD` — надёжный пароль PostgreSQL.
-- `JWT_SECRET` — случайный секрет длиной не менее 32 байт. Его можно сгенерировать командой:
+- `JWT_SECRET` — случайный секрет для подписи JWT. Сгенерировать его можно командой:
 
 ```powershell
 openssl rand -base64 48
 ```
 
-Не публикуй `.env` и не добавляй реальные секреты в Git.
+Скопируй результат в `JWT_SECRET` в файле `.env`. Приложение не использует секрет по умолчанию и не запустится, если `JWT_SECRET` отсутствует или слишком короткий для настроенного HMAC-алгоритма. **Не добавляй `.env` в Git и не публикуй его содержимое.**
 
 Запусти API и PostgreSQL:
 
@@ -77,20 +79,18 @@ openssl rand -base64 48
 docker compose up --build -d
 ```
 
+Полезные адреса:
+
+- API: [http://localhost:8080](http://localhost:8080)
+- Health check: [http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health) — публичный endpoint, токен не нужен
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
 Посмотреть логи приложения:
 
 ```powershell
 docker compose logs -f app
 ```
-
-После запуска приложение будет доступно по адресам:
-
-- API: http://localhost:8080
-- Health check: http://localhost:8080/api/v1/health
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
-- OpenAPI JSON: http://localhost:8080/v3/api-docs
-
-Health endpoint доступен без токена. Остальные защищённые endpoint требуют JWT Bearer token.
 
 Остановить контейнеры, сохранив данные PostgreSQL:
 
@@ -98,152 +98,105 @@ Health endpoint доступен без токена. Остальные защ�
 docker compose down
 ```
 
-Данные PostgreSQL сохраняются в Docker volume. Команда `docker compose down -v` удаляет volume с локальной базой данных и находящиеся в ней данные. Используй её только если действительно хочешь удалить базу.
+**Важно:** данные PostgreSQL сохраняются в Docker volume. Команда `docker compose down -v` удаляет volume с локальной базой данных и находящиеся в ней данные. Используй её только в том случае, если действительно хочешь удалить эти данные.
 
 ### Вариант 2. Запуск через Maven
 
-Этот вариант предназначен для локальной разработки. Сначала настрой переменные окружения `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` и `JWT_SECRET` в текущей оболочке. Значения пароля PostgreSQL должны совпадать с настройками запущенной базы данных.
-
-Запусти PostgreSQL:
+Этот вариант предназначен для локальной разработки. Сначала создай файл `.env` по инструкции выше и запусти PostgreSQL:
 
 ```powershell
 docker compose up -d postgres
 ```
 
-Затем запусти приложение:
+Перед запуском приложения задай в текущей оболочке переменные окружения `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` и `JWT_SECRET`. Убедись, что реквизиты подключения совпадают с настройками запущенной базы данных. Затем выполни:
 
 ```powershell
 mvn spring-boot:run
 ```
 
-Приложение использует параметры подключения к базе данных и JWT из переменных окружения. Пароль PostgreSQL и JWT secret обязательны; значения по умолчанию для этих секретов не предусмотрены.
+## API endpoints
 
-English version: [README.md](README.md).
-
-## Тестирование
-
-Для запуска полного набора тестов выполни:
-
-```powershell
-mvn -B verify
-```
-
-Интеграционные тесты используют Testcontainers и PostgreSQL. Перед запуском тестов Docker Desktop должен работать, чтобы Testcontainers мог создать контейнер базы данных.
-
-Тестовый набор проверяет основные сценарии аутентификации, доступ к защищённым endpoint, принадлежность ресурсов пользователям, единый формат ошибок и поведение пагинации.
-
-## Документация API
-
-Интерактивная документация Swagger UI:
-
-http://localhost:8080/swagger-ui/index.html
-
-Спецификация OpenAPI:
-
-http://localhost:8080/v3/api-docs
-
-Для вызова защищённых endpoint через Swagger используй кнопку `Authorize`.
-
-Получи JWT через `/api/v1/auth/login`, затем вставь полученный токен в поле Bearer Authentication. Вставляй только сам токен, без префикса `Bearer ` — Swagger добавит его самостоятельно.
-
-## Аутентификация
-
-### Регистрация
-
-`POST /api/v1/auth/register`
-
-Пример запроса:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "StrongPassword123"
-}
-```
-
-Пароль должен содержать от 8 до 72 символов. Регистрация создаёт учётную запись, но не возвращает JWT. Для получения токена необходимо выполнить вход.
-
-### Вход
-
-`POST /api/v1/auth/login`
-
-Пример запроса:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "StrongPassword123"
-}
-```
-
-При успешном входе API возвращает подписанный JWT. Для работы с защищёнными endpoint передавай токен в заголовке `Authorization`:
-
-```http
-Authorization: Bearer <JWT>
-```
-
-Стандартный срок действия токена — один час.
-
-## API Endpoints
+Все маршруты API используют префикс `/api/v1`.
 
 ### Аутентификация
 
 | Метод | Endpoint | Описание | Успешный ответ |
-|---|---|---|---|
-| POST | `/api/v1/auth/register` | Регистрация пользователя | 201 Created |
-| POST | `/api/v1/auth/login` | Вход и получение JWT | 200 OK |
+| --- | --- | --- | --- |
+| POST | `/api/v1/auth/register` | Регистрация пользователя | `201 Created` |
+| POST | `/api/v1/auth/login` | Вход и получение JWT | `200 OK` |
+
+Пример тела запроса для регистрации или входа:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "StrongPassword123"
+}
+```
+
+Пароль должен содержать от 8 до 72 символов. Регистрация создаёт учётную запись, но не возвращает JWT — для получения токена выполни вход. Стандартный срок действия токена — один час.
 
 ### Проекты
 
 Все endpoints проектов требуют JWT-аутентификации.
 
 | Метод | Endpoint | Описание | Успешный ответ |
-|---|---|---|---|
-| POST | `/api/v1/projects` | Создать проект | 201 Created |
-| GET | `/api/v1/projects` | Получить список своих проектов | 200 OK |
-| GET | `/api/v1/projects/{id}` | Получить проект по ID | 200 OK |
-| PUT | `/api/v1/projects/{id}` | Обновить проект | 200 OK |
-| DELETE | `/api/v1/projects/{id}` | Удалить проект | 204 No Content |
+| --- | --- | --- | --- |
+| POST | `/api/v1/projects` | Создать проект | `201 Created` |
+| GET | `/api/v1/projects` | Получить список своих проектов | `200 OK` |
+| GET | `/api/v1/projects/{id}` | Получить проект по ID | `200 OK` |
+| PUT | `/api/v1/projects/{id}` | Обновить проект | `200 OK` |
+| DELETE | `/api/v1/projects/{id}` | Удалить проект | `204 No Content` |
 
 ### Задачи
 
 Все endpoints задач требуют JWT-аутентификации.
 
 | Метод | Endpoint | Описание | Успешный ответ |
-|---|---|---|---|
-| POST | `/api/v1/projects/{projectId}/tasks` | Создать задачу в проекте | 201 Created |
-| GET | `/api/v1/projects/{projectId}/tasks` | Получить задачи проекта | 200 OK |
-| GET | `/api/v1/tasks/{id}` | Получить задачу по ID | 200 OK |
-| PUT | `/api/v1/tasks/{id}` | Обновить задачу | 200 OK |
-| DELETE | `/api/v1/tasks/{id}` | Удалить задачу | 204 No Content |
+| --- | --- | --- | --- |
+| POST | `/api/v1/projects/{projectId}/tasks` | Создать задачу в проекте | `201 Created` |
+| GET | `/api/v1/projects/{projectId}/tasks` | Получить задачи проекта | `200 OK` |
+| GET | `/api/v1/tasks/{id}` | Получить задачу по ID | `200 OK` |
+| PUT | `/api/v1/tasks/{id}` | Обновить задачу | `200 OK` |
+| DELETE | `/api/v1/tasks/{id}` | Удалить задачу | `204 No Content` |
+
+Для защищённых endpoint передавай токен в заголовке:
+
+```http
+Authorization: Bearer <JWT>
+```
+
+В Swagger UI нажми **Authorize** и вставь только сам токен, без префикса `Bearer ` — Swagger UI добавит его самостоятельно.
 
 ### Проверка доступности
 
 | Метод | Endpoint | Описание | Успешный ответ |
-|---|---|---|---|
-| GET | `/api/v1/health` | Проверить доступность API | 200 OK |
+| --- | --- | --- | --- |
+| GET | `/api/v1/health` | Проверить доступность API | `200 OK` |
+
+Health endpoint публичный и не требует JWT.
 
 ## Пагинация и сортировка
 
 Endpoints, возвращающие списки, поддерживают query-параметры:
 
 | Параметр | Значение по умолчанию | Описание |
-|---|---:|---|
-| `page` | 0 | Индекс страницы, начиная с нуля |
-| `size` | 20 | Размер страницы, максимум 100 записей |
+| --- | --- | --- |
+| `page` | `0` | Индекс страницы, начиная с нуля |
+| `size` | `20` | Размер страницы, максимум 100 записей |
 | `sort` | Зависит от endpoint | Поле и направление сортировки |
 
-Пример запроса:
+Пример:
 
 ```http
 GET /api/v1/projects?page=0&size=20&sort=createdAt,desc
 ```
 
-Если запросить более 100 записей на странице, размер будет ограничен 100. Если указать несуществующее поле сортировки, API вернёт `400 Bad Request` с кодом ошибки `INVALID_SORT_PROPERTY`.
+Если указать неизвестное поле сортировки, API вернёт `400 Bad Request` с кодом ошибки `INVALID_SORT_PROPERTY`.
 
 ## Формат ошибок
 
-Ошибки возвращаются в едином формате JSON:
+Ошибки возвращаются в едином формате JSON. Пример:
 
 ```json
 {
@@ -257,62 +210,47 @@ GET /api/v1/projects?page=0&size=20&sort=createdAt,desc
 Основные коды ошибок:
 
 | HTTP-статус | Код ошибки | Значение |
-|---|---|---|
-| 400 Bad Request | `VALIDATION_ERROR` | Ошибка валидации запроса |
-| 400 Bad Request | `INVALID_SORT_PROPERTY` | Указано неизвестное поле сортировки |
-| 401 Unauthorized | `UNAUTHORIZED` | Отсутствует авторизация или JWT недействителен |
-| 401 Unauthorized | `INVALID_CREDENTIALS` | Неверный email или пароль |
-| 404 Not Found | `PROJECT_NOT_FOUND` | Проект не найден или недоступен пользователю |
-| 404 Not Found | `TASK_NOT_FOUND` | Задача не найдена |
-| 409 Conflict | `USER_ALREADY_EXISTS` | Пользователь с таким email уже существует |
+| --- | --- | --- |
+| `400 Bad Request` | `VALIDATION_ERROR` | Ошибка валидации запроса |
+| `400 Bad Request` | `INVALID_SORT_PROPERTY` | Указано неизвестное поле сортировки |
+| `401 Unauthorized` | `UNAUTHORIZED` | Отсутствует авторизация или JWT недействителен |
+| `401 Unauthorized` | `INVALID_CREDENTIALS` | Неверный email или пароль |
+| `404 Not Found` | `PROJECT_NOT_FOUND` | Проект не найден или недоступен пользователю |
+| `404 Not Found` | `TASK_NOT_FOUND` | Задача не найдена |
+| `409 Conflict` | `USER_ALREADY_EXISTS` | Пользователь с таким email уже существует |
 
-Каждый пользователь может работать только со своими проектами и задачами. Попытки доступа к ресурсам другого пользователя обрабатываются как `404 Not Found`.
+Попытки доступа к проектам и задачам другого пользователя обрабатываются как `404 Not Found`.
 
-## Архитектура
+## Архитектура и миграции
 
 ```text
 HTTP / REST
-     |
-     v
-API-контроллеры и DTO
-     |
-     v
-Сервисы приложения
-     |
-     v
+     ↓
+Контроллеры и валидация DTO
+     ↓
+Сервисы приложения и проверки владельца
+     ↓
 Репозитории
-     |
-     v
+     ↓
 JPA / Hibernate
-     |
-     v
-PostgreSQL
+     ↓
+PostgreSQL (миграции Flyway)
 ```
 
-Проект разделяет обработку API-запросов, бизнес-логику, доменные модели и слой хранения данных. DTO используются на границе API, а Flyway управляет изменениями схемы базы данных.
+SQL-миграции Flyway находятся в каталоге `src/main/resources/db/migration`. Flyway управляет изменениями схемы, а Hibernate проверяет соответствие схемы сущностям.
 
-## Миграции базы данных
+## Тестирование и CI
 
-SQL-миграции Flyway расположены в каталоге:
+Запуск полного набора проверок:
 
-```text
-src/main/resources/db/migration
+```powershell
+mvn -B verify
 ```
 
-Hibernate проверяет соответствие схемы базы данных сущностям, но не создаёт и не изменяет её автоматически.
+Интеграционные тесты используют Testcontainers и запускают собственные контейнеры PostgreSQL, поэтому отдельно установленный или вручную запущенный PostgreSQL не требуется. Docker Desktop / Docker Engine должен работать, чтобы Testcontainers мог создавать контейнеры.
 
-## Непрерывная интеграция
+GitHub Actions проверяет конфигурацию Docker Compose, запускает Maven verification и сборку. Workflow находится в файле `.github/workflows/ci.yml`.
 
-GitHub Actions запускает Maven-проверки и сборку в соответствии с настройками workflow.
+## Поддержка production
 
-Конфигурация CI находится здесь:
-
-```text
-.github/workflows/ci.yml
-```
-
-## Статус проекта
-
-Основной API проектов и задач реализован. Также реализованы JWT-аутентификация, проверка владельца ресурсов, пагинация, структурированные ошибки и Swagger-документация.
-
-Unit- и интеграционные тесты покрывают основные сценарии работы приложения и проверки безопасности.
+Проект не заявляется как готовый к production. Перед реальным развёртыванием следует рассмотреть ограничение частоты запросов и защиту от злоупотреблений при аутентификации, централизованное хранение и ротацию секретов, метрики и наблюдаемость, health checks для конкретной среды развёртывания, а также документированную процедуру резервного копирования и восстановления.
