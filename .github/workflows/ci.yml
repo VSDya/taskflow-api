@@ -21,6 +21,12 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - name: Validate Docker Compose config
+        env:
+          POSTGRES_PASSWORD: ci-test-password
+          JWT_SECRET: ci-only-test-signing-key-0123456789abcdef
+        run: docker compose config --quiet
+
       - name: Verify
         run: mvn -B verify
 
