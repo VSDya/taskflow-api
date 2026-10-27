@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
@@ -64,6 +65,36 @@ class TaskListOwnershipIntegrationTest {
                 get("/api/v1/projects/{projectId}/tasks", projectId)
                         .header("Authorization", bearerToken(otherUserId))
         ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldUseDefaultPageSizeOfTwenty() throws Exception {
+        UUID ownerId = createUser("pagination-" + UUID.randomUUID() + "@example.com");
+        UUID projectId = createProject(ownerId);
+        createTask(projectId);
+
+        mockMvc.perform(
+                get("/api/v1/projects/{projectId}/tasks", projectId)
+                        .header("Authorization", bearerToken(ownerId))
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(20));
+    }
+
+    @Test
+    void shouldLimitRequestedPageSizeToOneHundred() throws Exception {
+        UUID ownerId = createUser("pagination-" + UUID.randomUUID() + "@example.com");
+        UUID projectId = createProject(ownerId);
+        createTask(projectId);
+
+        mockMvc.perform(
+                get("/api/v1/projects/{projectId}/tasks", projectId)
+                        .param("page", "0")
+                        .param("size", "500")
+                        .header("Authorization", bearerToken(ownerId))
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(100));
     }
 
     private UUID createUser(String email) {
