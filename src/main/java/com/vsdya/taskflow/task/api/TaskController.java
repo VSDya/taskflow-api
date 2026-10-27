@@ -1,6 +1,7 @@
 package com.vsdya.taskflow.task.api;
 
 import com.vsdya.taskflow.api.ApiExceptionHandler;
+import com.vsdya.taskflow.project.api.PageResponse;
 import com.vsdya.taskflow.task.application.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -148,16 +148,17 @@ public class TaskController {
                     )
             )
     })
-    public Page<TaskResponse> findByProject(
+    public PageResponse<TaskResponse> findByProject(
             @AuthenticationPrincipal UUID userId,
             @PathVariable UUID projectId,
             @ParameterObject
             @PageableDefault(size = 20, sort = "createdAt")
             Pageable pageable
     ) {
-        return taskService
-                .findByProject(userId, projectId, pageable)
-                .map(TaskResponse::from);
+        return PageResponse.from(
+                taskService.findByProject(userId, projectId, pageable)
+                        .map(TaskResponse::from)
+        );
     }
 
     @GetMapping("/tasks/{id}")

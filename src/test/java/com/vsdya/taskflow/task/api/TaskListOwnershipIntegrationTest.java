@@ -78,7 +78,12 @@ class TaskListOwnershipIntegrationTest {
                         .header("Authorization", bearerToken(ownerId))
         )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size").value(20));
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true));
     }
 
     @Test
@@ -94,6 +99,7 @@ class TaskListOwnershipIntegrationTest {
                         .header("Authorization", bearerToken(ownerId))
         )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(100));
     }
 
