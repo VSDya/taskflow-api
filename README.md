@@ -190,6 +190,34 @@ Example:
 GET /api/v1/projects?page=0&size=20&sort=createdAt,desc
 ```
 
+List endpoints return the same pagination response structure for projects and tasks.
+
+Example response:
+
+```json
+{
+  "content": [],
+  "page": 0,
+  "size": 20,
+  "totalElements": 42,
+  "totalPages": 3,
+  "first": true,
+  "last": false
+}
+```
+
+This example is illustrative. `content` contains the items on the current page; the remaining fields describe the page and the total number of matching items.
+
+| Field | Description |
+| --- | --- |
+| `content` | Items on the current page |
+| `page` | Zero-based index of the current page |
+| `size` | Page size, capped at 100 |
+| `totalElements` | Total number of matching items |
+| `totalPages` | Total number of pages |
+| `first` | Whether this is the first page |
+| `last` | Whether this is the last page |
+
 An unknown sort property returns `400 Bad Request` with the `INVALID_SORT_PROPERTY` error code.
 
 ## Error responses
