@@ -59,6 +59,25 @@ class ApiErrorIntegrationTest {
     }
 
     @Test
+    void shouldReturnStructured400ForMalformedJson()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {"email": "broken@example.com",
+                                         "password":
+                                        """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").exists())
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
+    @Test
     void shouldReturnStructured401ForInvalidCredentials()
             throws Exception {
 
@@ -143,4 +162,28 @@ class ApiErrorIntegrationTest {
                         .value("User already exists: " + email))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
+	    @Test
+    void shouldReturnStructured400ForInvalidUuidParameter()
+            throws Exception {
+
+        UUID userId = UUID.randomUUID();
+
+        String token = jwtService.generateToken(
+                userId,
+                "api-error-test@example.com"
+        );
+
+        mockMvc.perform(
+                        get("/api/v1/projects/not-a-uuid")
+                                .header("Authorization", "Bearer " + token)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error")
+                        .value("INVALID_PARAMETER_TYPE"))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid value for parameter: id"))
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
 }
