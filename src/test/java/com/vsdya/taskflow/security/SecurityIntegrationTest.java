@@ -76,10 +76,11 @@ class SecurityIntegrationTest {
                 UUID.randomUUID(),
                 "test@example.com"
         );
-        char lastCharacter = token.charAt(token.length() - 1);
-        char replacement = lastCharacter == 'A' ? 'B' : 'A';
-        String tamperedToken = token.substring(0, token.length() - 1)
-                + replacement;
+        String[] tokenParts = token.split("\\.");
+        char firstSignatureCharacter = tokenParts[2].charAt(0);
+        char replacement = firstSignatureCharacter == 'A' ? 'B' : 'A';
+        tokenParts[2] = replacement + tokenParts[2].substring(1);
+        String tamperedToken = String.join(".", tokenParts);
 
         mockMvc.perform(
                 get("/api/v1/projects")
