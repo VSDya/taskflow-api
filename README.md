@@ -239,6 +239,8 @@ Common error codes:
 | --- | --- | --- |
 | `400 Bad Request` | `VALIDATION_ERROR` | Request validation failed |
 | `400 Bad Request` | `INVALID_SORT_PROPERTY` | Unknown sort property |
+| `400 Bad Request` | `MALFORMED_JSON` | Request body is malformed or unreadable |
+| `400 Bad Request` | `INVALID_PARAMETER_TYPE` | A path or request parameter has an invalid type |
 | `401 Unauthorized` | `UNAUTHORIZED` | Authentication is missing or the JWT is invalid |
 | `401 Unauthorized` | `INVALID_CREDENTIALS` | Email or password is incorrect |
 | `404 Not Found` | `PROJECT_NOT_FOUND` | Project does not exist or is not accessible to the user |

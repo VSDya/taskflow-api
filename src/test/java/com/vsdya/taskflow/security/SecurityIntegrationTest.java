@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
@@ -34,10 +35,16 @@ class SecurityIntegrationTest {
     private JwtService jwtService;
 
     @Test
-    void shouldRejectProtectedEndpointWithoutToken() throws Exception {
+    void shouldRejectProtectedEndpointWithoutTokenUsingStructuredError()
+            throws Exception {
         mockMvc.perform(
                 get("/api/v1/projects")
-        ).andExpect(status().isUnauthorized());
+        )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
@@ -54,10 +61,32 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    void shouldRejectInvalidToken() throws Exception {
+    void shouldRejectMalformedToken() throws Exception {
         mockMvc.perform(
                 get("/api/v1/projects")
-                        .header("Authorization", "Bearer invalid-token")
-        ).andExpect(status().isUnauthorized());
+                        .header("Authorization", "Bearer not-a-jwt")
+        )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldRejectTokenWithTamperedSignature() throws Exception {
+        String token = jwtService.generateToken(
+                UUID.randomUUID(),
+                "test@example.com"
+        );
+        String[] tokenParts = token.split("\\.");
+        char firstSignatureCharacter = tokenParts[2].charAt(0);
+        char replacement = firstSignatureCharacter == 'A' ? 'B' : 'A';
+        tokenParts[2] = replacement + tokenParts[2].substring(1);
+        String tamperedToken = String.join(".", tokenParts);
+
+        mockMvc.perform(
+                get("/api/v1/projects")
+                        .header("Authorization", "Bearer " + tamperedToken)
+        )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
     }
 }
