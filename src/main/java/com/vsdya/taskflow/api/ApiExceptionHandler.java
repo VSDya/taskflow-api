@@ -7,10 +7,12 @@ import com.vsdya.taskflow.task.application.TaskNotFoundException;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 
@@ -85,6 +87,32 @@ public class ApiExceptionHandler {
                 400,
                 "VALIDATION_ERROR",
                 message,
+                Instant.now()
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleUnreadableRequestBody(
+            HttpMessageNotReadableException exception
+    ) {
+        return new ErrorResponse(
+                400,
+                "MALFORMED_JSON",
+                "Request body is malformed or unreadable",
+                Instant.now()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException exception
+    ) {
+        return new ErrorResponse(
+                400,
+                "INVALID_PARAMETER_TYPE",
+                "Invalid value for parameter: " + exception.getName(),
                 Instant.now()
         );
     }
