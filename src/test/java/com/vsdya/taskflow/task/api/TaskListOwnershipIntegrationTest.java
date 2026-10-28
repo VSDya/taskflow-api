@@ -103,6 +103,62 @@ class TaskListOwnershipIntegrationTest {
                 .andExpect(jsonPath("$.size").value(100));
     }
 
+    @Test
+    void shouldRejectInvalidSortProperty() throws Exception {
+        UUID ownerId = createUser("invalid-sort-" + UUID.randomUUID() + "@example.com");
+        UUID projectId = createProject(ownerId);
+        createTask(projectId);
+
+        mockMvc.perform(
+                get("/api/v1/projects/{projectId}/tasks", projectId)
+                        .param("sort", "nonExistentProperty,asc")
+                        .header("Authorization", bearerToken(ownerId))
+        )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("INVALID_SORT_PROPERTY"));
+    }
+
+    @Test
+    void shouldReturnDifferentTasksOnConsecutivePages() throws Exception {
+        UUID ownerId = createUser("pages-" + UUID.randomUUID() + "@example.com");
+        UUID projectId = createProject(ownerId);
+
+        createTask(projectId);
+        createTask(projectId);
+        createTask(projectId);
+
+        mockMvc.perform(
+                get("/api/v1/projects/{projectId}/tasks", projectId)
+                        .param("page", "0")
+                        .param("size", "2")
+                        .header("Authorization", bearerToken(ownerId))
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(false))
+                .andExpect(jsonPath("$.content.length()").value(2));
+
+        mockMvc.perform(
+                get("/api/v1/projects/{projectId}/tasks", projectId)
+                        .param("page", "1")
+                        .param("size", "2")
+                        .header("Authorization", bearerToken(ownerId))
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(false))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.content.length()").value(1));
+    }
+
     private UUID createUser(String email) {
         UUID userId = UUID.randomUUID();
 
