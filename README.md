@@ -76,7 +76,15 @@ openssl rand -base64 48
 
 Put the generated value in `JWT_SECRET`. The application intentionally has no default JWT secret and will fail to start if the secret is missing or too short for the configured HMAC algorithm. **Do not commit `.env` or share its contents.**
 
-### 2. Start the API and PostgreSQL
+### 2. Build the application JAR
+
+The Dockerfile copies the JAR from `target/`, so build it before the first Docker Compose startup and after changing application code:
+
+```bash
+mvn -B package
+```
+
+### 3. Start the API and PostgreSQL
 
 ```bash
 docker compose up --build -d
@@ -98,7 +106,7 @@ docker compose down
 
 **Data warning:** `docker compose down -v` removes the named PostgreSQL volume and deletes the local database data. Use it only when you intentionally want to remove that data.
 
-### 3. Run with Maven (optional)
+### 4. Run with Maven (optional)
 
 For local development, start PostgreSQL first:
 
