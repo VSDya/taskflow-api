@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -68,6 +70,35 @@ class AuthServiceTest {
 
         assertThat(savedUser.getPasswordHash())
                 .isEqualTo("hashed-password");
+    }
+
+    @Test
+    void shouldNormalizeEmailIndependentlyOfDefaultLocale() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            var request = new RegisterRequest(
+                    " I@EXAMPLE.COM ",
+                    "StrongPassword123"
+            );
+
+            when(userRepository.existsByEmailIgnoreCase("i@example.com"))
+                    .thenReturn(false);
+            when(passwordEncoder.encode("StrongPassword123"))
+                    .thenReturn("hashed-password");
+
+            authService.register(request);
+
+            ArgumentCaptor<UserEntity> captor =
+                    ArgumentCaptor.forClass(UserEntity.class);
+            verify(userRepository).save(captor.capture());
+
+            assertThat(captor.getValue().getEmail())
+                    .isEqualTo("i@example.com");
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test
