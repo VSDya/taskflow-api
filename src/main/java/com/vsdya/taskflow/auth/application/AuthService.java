@@ -6,6 +6,7 @@ import com.vsdya.taskflow.auth.api.RegisterRequest;
 import com.vsdya.taskflow.auth.infrastructure.UserEntity;
 import com.vsdya.taskflow.auth.infrastructure.UserRepository;
 import com.vsdya.taskflow.security.JwtService;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,10 +14,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final Set<String> EMAIL_UNIQUE_CONSTRAINTS = Set.of(
+            "users_email_key",
+            "ux_users_email_lower"
+    );
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -52,8 +59,11 @@ public class AuthService {
         try {
             userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException exception) {
-            // The unique email constraint is the final guard against concurrent registrations.
-            throw new UserAlreadyExistsException(email);
+            // Translate only the email uniqueness race; preserve unrelated database errors.
+            if (isEmailUniqueConstraintViolation(exception)) {
+                throw new UserAlreadyExistsException(email);
+            }
+            throw exception;
         }
 
         return new AuthResponse(
@@ -84,6 +94,19 @@ public class AuthService {
                 token,
                 "Bearer"
         );
+    }
+
+    private boolean isEmailUniqueConstraintViolation(Throwable exception) {
+        Throwable current = exception;
+        while (current != null) {
+            if (current instanceof ConstraintViolationException constraintException) {
+                return EMAIL_UNIQUE_CONSTRAINTS.contains(
+                        constraintException.getConstraintName()
+                );
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private String normalizeEmail(String email) {
