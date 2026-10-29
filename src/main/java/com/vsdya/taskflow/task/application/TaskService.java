@@ -112,7 +112,7 @@ public class TaskService {
     ) {
         var entity = getEntity(taskId);
 
-        ensureProjectBelongsToOwner(ownerId, entity.getProjectId());
+        ensureTaskBelongsToOwner(ownerId, taskId, entity.getProjectId());
 
         taskRepository.delete(entity);
     }
