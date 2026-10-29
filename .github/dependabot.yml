@@ -6,6 +6,9 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     groups:
+      jjwt:
+        patterns:
+          - "io.jsonwebtoken:*"
       spring-boot:
         patterns:
           - "org.springframework.boot:*"
