@@ -1,0 +1,22 @@
+package com.vsdya.taskflow.auth.api.validation;
+
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+
+import java.nio.charset.StandardCharsets;
+
+public class PasswordByteLengthValidator
+        implements ConstraintValidator<PasswordByteLength, String> {
+
+    private static final int MAX_BCRYPT_PASSWORD_BYTES = 72;
+
+    @Override
+    public boolean isValid(
+            String password,
+            ConstraintValidatorContext context
+    ) {
+        return password == null
+                || password.getBytes(StandardCharsets.UTF_8).length
+                <= MAX_BCRYPT_PASSWORD_BYTES;
+    }
+}
