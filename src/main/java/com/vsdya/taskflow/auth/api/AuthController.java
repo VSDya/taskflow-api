@@ -37,7 +37,7 @@ public class AuthController {
             description = """
                     Creates a new user account.
                     Email must be valid.
-                    Password must contain between 8 and 72 characters.
+                    Password must contain between 8 and 72 characters and no more than 72 UTF-8 bytes.
                     Registration does not return a JWT.
                     Use the login endpoint to obtain an access token.
                     """
