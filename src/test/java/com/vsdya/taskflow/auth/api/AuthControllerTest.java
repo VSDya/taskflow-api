@@ -104,4 +104,41 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }
+
+    @Test
+    void shouldRejectRegistrationPasswordExceedingBcryptByteLimit() throws Exception {
+        String password = "🔐".repeat(19);
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "unicode-password@example.com",
+                                    "password": "%s"
+                                }
+                                """.formatted(password)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message")
+                        .value("Password must not exceed 72 bytes when encoded as UTF-8"));
+    }
+
+    @Test
+    void shouldRejectLoginPasswordExceedingBcryptByteLimit() throws Exception {
+        String password = "🔐".repeat(19);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "unicode-password@example.com",
+                                    "password": "%s"
+                                }
+                                """.formatted(password)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message")
+                        .value("Password must not exceed 72 bytes when encoded as UTF-8"));
+    }
+
 }

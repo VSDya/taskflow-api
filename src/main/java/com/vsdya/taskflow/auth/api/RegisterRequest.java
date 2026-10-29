@@ -1,5 +1,6 @@
 package com.vsdya.taskflow.auth.api;
 
+import com.vsdya.taskflow.auth.api.validation.PasswordByteLength;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -21,12 +22,13 @@ public record RegisterRequest(
         String email,
 
         @Schema(
-                description = "Password. Must contain between 8 and 72 characters.",
+                description = "Password. Must contain between 8 and 72 characters and no more than 72 UTF-8 bytes.",
                 example = "StrongPassword123",
                 format = "password",
                 requiredMode = Schema.RequiredMode.REQUIRED
         )
         @NotBlank(message = "Password is required")
+        @PasswordByteLength
         @Size(
                 min = 8,
                 max = 72,
