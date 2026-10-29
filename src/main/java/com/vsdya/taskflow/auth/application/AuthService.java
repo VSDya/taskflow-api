@@ -6,6 +6,7 @@ import com.vsdya.taskflow.auth.api.RegisterRequest;
 import com.vsdya.taskflow.auth.infrastructure.UserEntity;
 import com.vsdya.taskflow.auth.infrastructure.UserRepository;
 import com.vsdya.taskflow.security.JwtService;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,7 +49,12 @@ public class AuthService {
                 Instant.now()
         );
 
-        userRepository.save(user);
+        try {
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException exception) {
+            // The unique email constraint is the final guard against concurrent registrations.
+            throw new UserAlreadyExistsException(email);
+        }
 
         return new AuthResponse(
                 "User registered successfully",
