@@ -7,6 +7,7 @@ import com.vsdya.taskflow.auth.infrastructure.UserRepository;
 import com.vsdya.taskflow.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Locale;
@@ -61,7 +62,7 @@ class AuthServiceTest {
         ArgumentCaptor<UserEntity> captor =
                 ArgumentCaptor.forClass(UserEntity.class);
 
-        verify(userRepository).save(captor.capture());
+        verify(userRepository).saveAndFlush(captor.capture());
 
         UserEntity savedUser = captor.getValue();
 
@@ -102,6 +103,26 @@ class AuthServiceTest {
     }
 
     @Test
+    void shouldRejectConcurrentRegistrationWhenEmailConstraintWinsRace() {
+        var request = new RegisterRequest(
+                "test@example.com",
+                "StrongPassword123"
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("test@example.com"))
+                .thenReturn(false);
+        when(passwordEncoder.encode("StrongPassword123"))
+                .thenReturn("hashed-password");
+        when(userRepository.saveAndFlush(any(UserEntity.class)))
+                .thenThrow(new DataIntegrityViolationException("unique email constraint"));
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(UserAlreadyExistsException.class);
+
+        verify(userRepository).saveAndFlush(any(UserEntity.class));
+    }
+
+    @Test
     void shouldRejectExistingUser() {
         var request = new RegisterRequest(
                 "test@example.com",
@@ -114,7 +135,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(UserAlreadyExistsException.class);
 
-        verify(userRepository, never()).save(any());
+        verify(userRepository, never()).saveAndFlush(any());
         verify(passwordEncoder, never()).encode(any());
         verify(jwtService, never()).generateToken(any(), any());
     }
