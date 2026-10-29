@@ -119,4 +119,61 @@ class AuthFlowIntegrationTest {
                         .value("Authentication is required or the token is invalid"))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
+
+    @Test
+    void shouldUseSamePublicErrorForUnknownEmailAndWrongPassword()
+            throws Exception {
+        String email = "credentials-" + System.currentTimeMillis()
+                + "@example.com";
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "%s",
+                                    "password": "StrongPassword123"
+                                }
+                                """.formatted(email)))
+                .andExpect(status().isCreated());
+
+        String wrongPasswordResponse = mockMvc.perform(
+                        post("/api/v1/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "email": "%s",
+                                            "password": "IncorrectPassword123"
+                                        }
+                                        """.formatted(email)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("INVALID_CREDENTIALS"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String unknownEmailResponse = mockMvc.perform(
+                        post("/api/v1/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "email": "unknown-%s@example.com",
+                                            "password": "StrongPassword123"
+                                        }
+                                        """.formatted(System.currentTimeMillis())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("INVALID_CREDENTIALS"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode wrongPasswordError = objectMapper.readTree(wrongPasswordResponse);
+        JsonNode unknownEmailError = objectMapper.readTree(unknownEmailResponse);
+
+        assertThat(wrongPasswordError.get("message").asText())
+                .isEqualTo("Invalid email or password");
+        assertThat(unknownEmailError.get("message").asText())
+                .isEqualTo(wrongPasswordError.get("message").asText());
+    }
 }
