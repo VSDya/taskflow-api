@@ -48,6 +48,13 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void shouldRequireAuthenticationForUnlistedAuthRoutes() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/admin"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
+    }
+
+    @Test
     void shouldAllowProtectedEndpointWithValidToken() throws Exception {
         String token = jwtService.generateToken(
                 UUID.randomUUID(),
