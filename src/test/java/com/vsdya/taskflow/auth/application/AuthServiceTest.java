@@ -93,7 +93,7 @@ class AuthServiceTest {
 
             ArgumentCaptor<UserEntity> captor =
                     ArgumentCaptor.forClass(UserEntity.class);
-            verify(userRepository).save(captor.capture());
+            verify(userRepository).saveAndFlush(captor.capture());
 
             assertThat(captor.getValue().getEmail())
                     .isEqualTo("i@example.com");
