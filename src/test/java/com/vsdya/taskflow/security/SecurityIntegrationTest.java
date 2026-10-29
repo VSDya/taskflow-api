@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class SecurityIntegrationTest {
 
+    private static final String TEST_JWT_SECRET =
+            "test-only-signing-key-do-not-use-outside-tests-0123456789abcdef";
+
     @Container
     @ServiceConnection
     static PostgreSQLContainer<?> postgres =
@@ -94,6 +97,23 @@ class SecurityIntegrationTest {
                         .header("Authorization", "Bearer " + tamperedToken)
         )
                 .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldRejectExpiredToken() throws Exception {
+        JwtService expiredTokenIssuer = new JwtService(TEST_JWT_SECRET, -60_000);
+        String expiredToken = expiredTokenIssuer.generateToken(
+                UUID.randomUUID(),
+                "expired@example.com"
+        );
+
+        mockMvc.perform(
+                get("/api/v1/projects")
+                        .header("Authorization", "Bearer " + expiredToken)
+        )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
     }
 }
