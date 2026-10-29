@@ -129,6 +129,6 @@ class TaskServiceTest {
         assertThatThrownBy(() ->
                 taskService.findById(ownerId, taskId)
         )
-                .isInstanceOf(ProjectNotFoundException.class);
+                .isInstanceOf(TaskNotFoundException.class);
     }
 }
