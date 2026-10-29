@@ -5,6 +5,7 @@ import com.vsdya.taskflow.api.ApiExceptionHandler.ErrorResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -64,7 +65,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/auth/**",
+                                HttpMethod.POST,
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login"
+                        ).permitAll()
+                        .requestMatchers(
                                 "/api/v1/health",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
