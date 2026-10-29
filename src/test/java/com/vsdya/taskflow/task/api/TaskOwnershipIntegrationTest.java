@@ -147,7 +147,9 @@ class TaskOwnershipIntegrationTest {
         mockMvc.perform(
                 delete("/api/v1/tasks/{id}", taskId)
                         .header("Authorization", bearerToken(otherUserId))
-        ).andExpect(status().isNotFound());
+        )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("TASK_NOT_FOUND"));
 
         assertThat(taskRepository.findById(taskId))
                 .isPresent();
