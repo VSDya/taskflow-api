@@ -5,11 +5,13 @@ import com.vsdya.taskflow.auth.api.RegisterRequest;
 import com.vsdya.taskflow.auth.infrastructure.UserEntity;
 import com.vsdya.taskflow.auth.infrastructure.UserRepository;
 import com.vsdya.taskflow.security.JwtService;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.sql.SQLException;
 import java.util.Locale;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,17 +111,56 @@ class AuthServiceTest {
                 "StrongPassword123"
         );
 
+        var constraintViolation = new ConstraintViolationException(
+                "duplicate email",
+                new SQLException("duplicate key", "23505"),
+                "insert into users",
+                "users_email_key"
+        );
+
         when(userRepository.existsByEmailIgnoreCase("test@example.com"))
                 .thenReturn(false);
         when(passwordEncoder.encode("StrongPassword123"))
                 .thenReturn("hashed-password");
         when(userRepository.saveAndFlush(any(UserEntity.class)))
-                .thenThrow(new DataIntegrityViolationException("unique email constraint"));
+                .thenThrow(new DataIntegrityViolationException(
+                        "unique email constraint",
+                        constraintViolation
+                ));
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(UserAlreadyExistsException.class);
 
         verify(userRepository).saveAndFlush(any(UserEntity.class));
+    }
+
+    @Test
+    void shouldPropagateUnrelatedDatabaseConstraintViolation() {
+        var request = new RegisterRequest(
+                "test@example.com",
+                "StrongPassword123"
+        );
+
+        var constraintViolation = new ConstraintViolationException(
+                "primary key conflict",
+                new SQLException("duplicate key", "23505"),
+                "insert into users",
+                "users_pkey"
+        );
+        var databaseException = new DataIntegrityViolationException(
+                "primary key constraint",
+                constraintViolation
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("test@example.com"))
+                .thenReturn(false);
+        when(passwordEncoder.encode("StrongPassword123"))
+                .thenReturn("hashed-password");
+        when(userRepository.saveAndFlush(any(UserEntity.class)))
+                .thenThrow(databaseException);
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isSameAs(databaseException);
     }
 
     @Test
