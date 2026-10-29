@@ -36,4 +36,11 @@ public record RegisterRequest(
         )
         String password
 ) {
+    public RegisterRequest {
+        // Trim before Bean Validation so surrounding whitespace does not
+        // make an otherwise valid email fail @Email before normalization.
+        if (email != null) {
+            email = email.trim();
+        }
+    }
 }
