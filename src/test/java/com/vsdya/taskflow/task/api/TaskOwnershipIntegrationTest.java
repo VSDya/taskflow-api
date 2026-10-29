@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Testcontainers
@@ -80,6 +81,28 @@ class TaskOwnershipIntegrationTest {
                 get("/api/v1/tasks/{id}", taskId)
                         .header("Authorization", bearerToken(otherUserId))
         ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void shouldNotRevealWhetherForeignTaskExists() throws Exception {
+        UUID ownerId = createUser("owner-" + UUID.randomUUID() + "@example.com");
+        UUID otherUserId = createUser("other-" + UUID.randomUUID() + "@example.com");
+        UUID projectId = createProject(ownerId);
+        UUID taskId = createTask(projectId);
+
+        mockMvc.perform(
+                get("/api/v1/tasks/{id}", taskId)
+                        .header("Authorization", bearerToken(otherUserId))
+        )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("TASK_NOT_FOUND"));
+
+        mockMvc.perform(
+                get("/api/v1/tasks/{id}", UUID.randomUUID())
+                        .header("Authorization", bearerToken(otherUserId))
+        )
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("TASK_NOT_FOUND"));
     }
 
     @Test
