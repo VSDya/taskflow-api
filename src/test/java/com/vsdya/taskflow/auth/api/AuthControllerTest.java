@@ -14,6 +14,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.Locale;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -65,29 +67,42 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldRejectDuplicateEmail() throws Exception {
+    void shouldRejectDuplicateEmailAfterTrimmingAndCaseNormalization()
+            throws Exception {
         String email = "duplicate-" + System.currentTimeMillis() + "@example.com";
 
-        String requestBody = """
+        String firstRequestBody = """
                 {
                     "email": "%s",
                     "password": "StrongPassword123"
                 }
                 """.formatted(email);
 
+        String normalizedVariant = "  " + email.toUpperCase(Locale.ROOT) + " ";
+        String secondRequestBody = """
+                {
+                    "email": "%s",
+                    "password": "DifferentPassword123"
+                }
+                """.formatted(normalizedVariant);
+
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .content(firstRequestBody))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .content(secondRequestBody))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.status").value(409))
                 .andExpect(jsonPath("$.error").value("USER_ALREADY_EXISTS"))
                 .andExpect(jsonPath("$.message")
                         .value("User already exists: " + email));
+
+        assertThat(userRepository.findAll().stream()
+                .filter(user -> user.getEmail().equals(email))
+                .count()).isEqualTo(1);
     }
 
     @Test
@@ -106,7 +121,73 @@ class AuthControllerTest {
     }
 
     @Test
-    void shouldRejectRegistrationPasswordExceedingBcryptByteLimit() throws Exception {
+    void shouldRejectBlankRequiredRegistrationFields() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "   ",
+                                    "password": "StrongPassword123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Email is required"));
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "blank-password@example.com",
+                                    "password": "   "
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Password is required"));
+    }
+
+    @Test
+    void shouldAcceptPasswordAtBcryptUtf8ByteLimit() throws Exception {
+        String email = "password-boundary-" + System.currentTimeMillis()
+                + "@example.com";
+        String password = "🔐".repeat(18);
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "%s",
+                                    "password": "%s"
+                                }
+                                """.formatted(email, password)))
+                .andExpect(status().isCreated());
+
+        assertThat(userRepository.findByEmailIgnoreCase(email)).isPresent();
+    }
+
+    @Test
+    void shouldRejectRegistrationPasswordExceedingCharacterLimit()
+            throws Exception {
+        String password = "a".repeat(73);
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": "too-long-password@example.com",
+                                    "password": "%s"
+                                }
+                                """.formatted(password)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message")
+                        .value("Password must be between 8 and 72 characters"));
+    }
+
+    @Test
+    void shouldRejectRegistrationPasswordExceedingBcryptByteLimit()
+            throws Exception {
         String password = "🔐".repeat(19);
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -140,5 +221,4 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message")
                         .value("Password must not exceed 72 bytes when encoded as UTF-8"));
     }
-
 }
