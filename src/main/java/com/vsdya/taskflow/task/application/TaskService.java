@@ -77,7 +77,7 @@ public class TaskService {
     ) {
         var task = getEntity(taskId);
 
-        ensureProjectBelongsToOwner(ownerId, task.getProjectId());
+        ensureTaskBelongsToOwner(ownerId, taskId, task.getProjectId());
 
         return toDomain(task);
     }
@@ -90,7 +90,7 @@ public class TaskService {
     ) {
         var entity = getEntity(taskId);
 
-        ensureProjectBelongsToOwner(ownerId, entity.getProjectId());
+        ensureTaskBelongsToOwner(ownerId, taskId, entity.getProjectId());
 
         entity.update(
                 request.title().trim(),
@@ -128,6 +128,16 @@ public class TaskService {
     ) {
         if (!projectRepository.existsByIdAndOwnerId(projectId, ownerId)) {
             throw new ProjectNotFoundException(projectId);
+        }
+    }
+
+    private void ensureTaskBelongsToOwner(
+            UUID ownerId,
+            UUID taskId,
+            UUID projectId
+    ) {
+        if (!projectRepository.existsByIdAndOwnerId(projectId, ownerId)) {
+            throw new TaskNotFoundException(taskId);
         }
     }
 
