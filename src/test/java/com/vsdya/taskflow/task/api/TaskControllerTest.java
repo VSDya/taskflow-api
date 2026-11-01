@@ -1,3 +1,4 @@
+
 package com.vsdya.taskflow.task.api;
 
 import com.vsdya.taskflow.security.JwtService;
@@ -9,10 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -21,9 +22,12 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -114,6 +118,73 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.projectId")
                         .value(projectId.toString()))
                 .andExpect(jsonPath("$.title").value("My task"));
+    }
+
+    @Test
+    void shouldUpdateTaskForAuthenticatedUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+
+        when(taskService.update(
+                eq(userId),
+                eq(taskId),
+                any(UpdateTaskRequest.class)
+        )).thenReturn(
+                new Task(
+                        taskId,
+                        projectId,
+                        "Updated task",
+                        "Updated description",
+                        TaskStatus.TODO,
+                        TaskPriority.MEDIUM,
+                        null,
+                        Instant.parse("2026-01-01T12:00:00Z"),
+                        Instant.parse("2026-01-02T12:00:00Z")
+                )
+        );
+
+        mockMvc.perform(
+                        put("/api/v1/tasks/{id}", taskId)
+                                .with(asUser(userId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                        {
+                                            "title": "Updated task",
+                                            "description": "Updated description",
+                                            "status": "TODO",
+                                            "priority": "MEDIUM",
+                                            "dueDate": null
+                                        }
+                                        """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(taskId.toString()))
+                .andExpect(jsonPath("$.projectId")
+                        .value(projectId.toString()))
+                .andExpect(jsonPath("$.title").value("Updated task"))
+                .andExpect(jsonPath("$.description")
+                        .value("Updated description"));
+
+        verify(taskService).update(
+                eq(userId),
+                eq(taskId),
+                any(UpdateTaskRequest.class)
+        );
+    }
+
+    @Test
+    void shouldDeleteTaskForAuthenticatedUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID taskId = UUID.randomUUID();
+
+        mockMvc.perform(
+                        delete("/api/v1/tasks/{id}", taskId)
+                                .with(asUser(userId))
+                )
+                .andExpect(status().isNoContent());
+
+        verify(taskService).delete(userId, taskId);
     }
 
     @Test
