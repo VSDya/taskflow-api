@@ -1,4 +1,3 @@
-
 package com.vsdya.taskflow.task.application;
 
 import com.vsdya.taskflow.project.application.ProjectNotFoundException;
@@ -14,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -256,6 +256,78 @@ class TaskServiceTest {
 
         assertThat(task.title()).isEqualTo("New title");
         assertThat(task.description()).isNull();
+    }
+
+    @Test
+    void shouldRejectUpdatingTaskFromForeignProject() {
+        var ownerId = UUID.randomUUID();
+        var projectId = UUID.randomUUID();
+        var taskId = UUID.randomUUID();
+
+        var entity = new TaskEntity(
+                taskId,
+                projectId,
+                "Private task",
+                "Original description",
+                TaskStatus.TODO,
+                TaskPriority.MEDIUM,
+                null,
+                Instant.now(),
+                Instant.now()
+        );
+
+        when(taskRepository.findById(taskId))
+                .thenReturn(Optional.of(entity));
+
+        when(projectRepository.existsByIdAndOwnerId(projectId, ownerId))
+                .thenReturn(false);
+
+        var taskService = new TaskService(
+                taskRepository,
+                projectRepository
+        );
+
+        assertThatThrownBy(() ->
+                taskService.update(
+                        ownerId,
+                        taskId,
+                        new UpdateTaskRequest(
+                                "Modified title",
+                                "Modified description",
+                                TaskStatus.DONE,
+                                TaskPriority.HIGH,
+                                null
+                        )
+                )
+        )
+                .isInstanceOf(TaskNotFoundException.class);
+
+        assertThat(entity.getTitle()).isEqualTo("Private task");
+        assertThat(entity.getDescription())
+                .isEqualTo("Original description");
+    }
+
+    @Test
+    void shouldRejectListingTasksForForeignProject() {
+        var ownerId = UUID.randomUUID();
+        var projectId = UUID.randomUUID();
+        var pageable = PageRequest.of(0, 20);
+
+        when(projectRepository.existsByIdAndOwnerId(projectId, ownerId))
+                .thenReturn(false);
+
+        var taskService = new TaskService(
+                taskRepository,
+                projectRepository
+        );
+
+        assertThatThrownBy(() ->
+                taskService.findByProject(ownerId, projectId, pageable)
+        )
+                .isInstanceOf(ProjectNotFoundException.class);
+
+        verify(taskRepository, never())
+                .findByProjectId(projectId, pageable);
     }
 
     @Test

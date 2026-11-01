@@ -32,9 +32,6 @@ jobs:
       - name: Verify
         run: mvn -B verify
 
-      - name: Package
-        run: mvn -B package -DskipTests
-
       - name: Start application stack
         env:
           POSTGRES_PASSWORD: ci-test-password
