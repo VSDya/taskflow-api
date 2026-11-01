@@ -1,3 +1,4 @@
+
 package com.vsdya.taskflow.auth.api;
 
 import com.vsdya.taskflow.auth.infrastructure.UserEntity;
@@ -147,10 +148,25 @@ class AuthControllerTest {
     }
 
     @Test
+    void shouldRejectNullEmailRegistrationRequest() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "email": null,
+                                    "password": "StrongPassword123"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Email is required"));
+    }
+
+    @Test
     void shouldAcceptPasswordAtBcryptUtf8ByteLimit() throws Exception {
         String email = "password-boundary-" + System.currentTimeMillis()
                 + "@example.com";
-        String password = "🔐".repeat(18);
+        String password = "界".repeat(24);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -185,7 +201,7 @@ class AuthControllerTest {
     @Test
     void shouldRejectRegistrationPasswordExceedingBcryptByteLimit()
             throws Exception {
-        String password = "🔐".repeat(19);
+        String password = "界".repeat(25);
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -203,7 +219,7 @@ class AuthControllerTest {
 
     @Test
     void shouldRejectLoginPasswordExceedingBcryptByteLimit() throws Exception {
-        String password = "🔐".repeat(19);
+        String password = "界".repeat(25);
 
         mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -1,18 +1,21 @@
 package com.vsdya.taskflow.auth.application;
 
 import com.vsdya.taskflow.auth.api.AuthResponse;
+import com.vsdya.taskflow.auth.api.LoginRequest;
 import com.vsdya.taskflow.auth.api.RegisterRequest;
 import com.vsdya.taskflow.auth.infrastructure.UserEntity;
 import com.vsdya.taskflow.auth.infrastructure.UserRepository;
 import com.vsdya.taskflow.security.JwtService;
 import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -61,8 +64,8 @@ class AuthServiceTest {
         assertThat(response.token()).isNull();
         assertThat(response.tokenType()).isNull();
 
-        ArgumentCaptor<UserEntity> captor =
-                ArgumentCaptor.forClass(UserEntity.class);
+        var captor = org.mockito.ArgumentCaptor
+                .forClass(UserEntity.class);
 
         verify(userRepository).saveAndFlush(captor.capture());
 
@@ -78,6 +81,7 @@ class AuthServiceTest {
     @Test
     void shouldNormalizeEmailIndependentlyOfDefaultLocale() {
         Locale originalLocale = Locale.getDefault();
+
         try {
             Locale.setDefault(Locale.forLanguageTag("tr-TR"));
 
@@ -88,13 +92,15 @@ class AuthServiceTest {
 
             when(userRepository.existsByEmailIgnoreCase("i@example.com"))
                     .thenReturn(false);
+
             when(passwordEncoder.encode("StrongPassword123"))
                     .thenReturn("hashed-password");
 
             authService.register(request);
 
-            ArgumentCaptor<UserEntity> captor =
-                    ArgumentCaptor.forClass(UserEntity.class);
+            var captor = org.mockito.ArgumentCaptor
+                    .forClass(UserEntity.class);
+
             verify(userRepository).saveAndFlush(captor.capture());
 
             assertThat(captor.getValue().getEmail())
@@ -120,8 +126,10 @@ class AuthServiceTest {
 
         when(userRepository.existsByEmailIgnoreCase("test@example.com"))
                 .thenReturn(false);
+
         when(passwordEncoder.encode("StrongPassword123"))
                 .thenReturn("hashed-password");
+
         when(userRepository.saveAndFlush(any(UserEntity.class)))
                 .thenThrow(new DataIntegrityViolationException(
                         "unique email constraint",
@@ -132,6 +140,37 @@ class AuthServiceTest {
                 .isInstanceOf(UserAlreadyExistsException.class);
 
         verify(userRepository).saveAndFlush(any(UserEntity.class));
+    }
+
+    @Test
+    void shouldRecognizeLowercaseEmailUniqueConstraint() {
+        var request = new RegisterRequest(
+                "test@example.com",
+                "StrongPassword123"
+        );
+
+        var constraintViolation = new ConstraintViolationException(
+                "duplicate email",
+                new SQLException("duplicate key", "23505"),
+                "insert into users",
+                "ux_users_email_lower"
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("test@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("StrongPassword123"))
+                .thenReturn("hashed-password");
+
+        when(userRepository.saveAndFlush(any(UserEntity.class)))
+                .thenThrow(new DataIntegrityViolationException(
+                        "unique email constraint",
+                        new RuntimeException("database error",
+                                constraintViolation)
+                ));
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isInstanceOf(UserAlreadyExistsException.class);
     }
 
     @Test
@@ -147,6 +186,7 @@ class AuthServiceTest {
                 "insert into users",
                 "users_pkey"
         );
+
         var databaseException = new DataIntegrityViolationException(
                 "primary key constraint",
                 constraintViolation
@@ -154,8 +194,35 @@ class AuthServiceTest {
 
         when(userRepository.existsByEmailIgnoreCase("test@example.com"))
                 .thenReturn(false);
+
         when(passwordEncoder.encode("StrongPassword123"))
                 .thenReturn("hashed-password");
+
+        when(userRepository.saveAndFlush(any(UserEntity.class)))
+                .thenThrow(databaseException);
+
+        assertThatThrownBy(() -> authService.register(request))
+                .isSameAs(databaseException);
+    }
+
+    @Test
+    void shouldPropagateDatabaseExceptionWithoutConstraintViolationCause() {
+        var request = new RegisterRequest(
+                "test@example.com",
+                "StrongPassword123"
+        );
+
+        var databaseException = new DataIntegrityViolationException(
+                "database error",
+                new SQLException("unexpected database error")
+        );
+
+        when(userRepository.existsByEmailIgnoreCase("test@example.com"))
+                .thenReturn(false);
+
+        when(passwordEncoder.encode("StrongPassword123"))
+                .thenReturn("hashed-password");
+
         when(userRepository.saveAndFlush(any(UserEntity.class)))
                 .thenThrow(databaseException);
 
@@ -178,6 +245,92 @@ class AuthServiceTest {
 
         verify(userRepository, never()).saveAndFlush(any());
         verify(passwordEncoder, never()).encode(any());
+        verify(jwtService, never()).generateToken(any(), any());
+    }
+
+    @Test
+    void shouldLoginUser() {
+        UUID userId = UUID.randomUUID();
+
+        var user = new UserEntity(
+                userId,
+                "test@example.com",
+                "hashed-password",
+                Instant.now()
+        );
+
+        var request = new LoginRequest(
+                " TEST@example.com ",
+                "StrongPassword123"
+        );
+
+        when(userRepository.findByEmailIgnoreCase("test@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches(
+                "StrongPassword123",
+                "hashed-password"
+        )).thenReturn(true);
+
+        when(jwtService.generateToken(userId, "test@example.com"))
+                .thenReturn("test-jwt-token");
+
+        AuthResponse response = authService.login(request);
+
+        assertThat(response.message())
+                .isEqualTo("Login successful");
+
+        assertThat(response.token())
+                .isEqualTo("test-jwt-token");
+
+        assertThat(response.tokenType())
+                .isEqualTo("Bearer");
+
+        verify(jwtService).generateToken(userId, "test@example.com");
+    }
+
+    @Test
+    void shouldRejectLoginWhenUserDoesNotExist() {
+        var request = new LoginRequest(
+                "unknown@example.com",
+                "StrongPassword123"
+        );
+
+        when(userRepository.findByEmailIgnoreCase("unknown@example.com"))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(InvalidCredentialsException.class);
+
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(jwtService, never()).generateToken(any(), any());
+    }
+
+    @Test
+    void shouldRejectLoginWhenPasswordIsIncorrect() {
+        var user = new UserEntity(
+                UUID.randomUUID(),
+                "test@example.com",
+                "hashed-password",
+                Instant.now()
+        );
+
+        var request = new LoginRequest(
+                "test@example.com",
+                "WrongPassword123"
+        );
+
+        when(userRepository.findByEmailIgnoreCase("test@example.com"))
+                .thenReturn(Optional.of(user));
+
+        when(passwordEncoder.matches(
+                "WrongPassword123",
+                "hashed-password"
+        )).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(InvalidCredentialsException.class);
+
         verify(jwtService, never()).generateToken(any(), any());
     }
 }

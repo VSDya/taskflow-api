@@ -1,3 +1,4 @@
+
 package com.vsdya.taskflow.security;
 
 import org.junit.jupiter.api.Test;
@@ -114,6 +115,17 @@ class SecurityIntegrationTest {
         )
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldRejectAuthorizationHeaderWithUnsupportedScheme()
+            throws Exception {
+        mockMvc.perform(
+                        get("/api/v1/projects")
+                                .header("Authorization", "Basic dXNlcjpwYXNz")
+                )
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
     }
 }

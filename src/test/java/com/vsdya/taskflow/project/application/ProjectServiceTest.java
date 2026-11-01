@@ -1,6 +1,8 @@
+
 package com.vsdya.taskflow.project.application;
 
 import com.vsdya.taskflow.project.api.CreateProjectRequest;
+import com.vsdya.taskflow.project.api.UpdateProjectRequest;
 import com.vsdya.taskflow.project.infrastructure.ProjectEntity;
 import com.vsdya.taskflow.project.infrastructure.ProjectRepository;
 import org.junit.jupiter.api.Test;
@@ -90,5 +92,97 @@ class ProjectServiceTest {
 
         assertThat(captor.getValue().getOwnerId())
                 .isEqualTo(ownerId);
+    }
+
+    @Test
+    void shouldCreateProjectWithNullDescription() {
+        var ownerId = UUID.randomUUID();
+
+        when(projectRepository.save(any(ProjectEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var project = projectService.create(
+                ownerId,
+                new CreateProjectRequest("TaskFlow", null)
+        );
+
+        assertThat(project.name()).isEqualTo("TaskFlow");
+        assertThat(project.description()).isNull();
+    }
+
+    @Test
+    void shouldUpdateProjectWithDescription() {
+        var ownerId = UUID.randomUUID();
+        var projectId = UUID.randomUUID();
+
+        var entity = new ProjectEntity(
+                projectId,
+                ownerId,
+                "Old name",
+                "Old description",
+                Instant.now()
+        );
+
+        when(projectRepository.findByIdAndOwnerId(projectId, ownerId))
+                .thenReturn(Optional.of(entity));
+
+        var project = projectService.update(
+                ownerId,
+                projectId,
+                new UpdateProjectRequest(
+                        " New name ",
+                        " New description "
+                )
+        );
+
+        assertThat(project.name()).isEqualTo("New name");
+        assertThat(project.description()).isEqualTo("New description");
+    }
+
+    @Test
+    void shouldUpdateProjectWithNullDescription() {
+        var ownerId = UUID.randomUUID();
+        var projectId = UUID.randomUUID();
+
+        var entity = new ProjectEntity(
+                projectId,
+                ownerId,
+                "Old name",
+                "Old description",
+                Instant.now()
+        );
+
+        when(projectRepository.findByIdAndOwnerId(projectId, ownerId))
+                .thenReturn(Optional.of(entity));
+
+        var project = projectService.update(
+                ownerId,
+                projectId,
+                new UpdateProjectRequest("New name", null)
+        );
+
+        assertThat(project.name()).isEqualTo("New name");
+        assertThat(project.description()).isNull();
+    }
+
+    @Test
+    void shouldDeleteProjectForOwner() {
+        var ownerId = UUID.randomUUID();
+        var projectId = UUID.randomUUID();
+
+        var entity = new ProjectEntity(
+                projectId,
+                ownerId,
+                "TaskFlow",
+                "Portfolio API",
+                Instant.now()
+        );
+
+        when(projectRepository.findByIdAndOwnerId(projectId, ownerId))
+                .thenReturn(Optional.of(entity));
+
+        projectService.delete(ownerId, projectId);
+
+        verify(projectRepository).delete(entity);
     }
 }
